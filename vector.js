@@ -7,7 +7,7 @@ Vector.prototype.add = function(other, y) {
 	y = y || other;
 	if (typeof other === 'number') {
 		this.x += other;
-		this.y += other;
+		this.y += y;
 	} else {
 		this.x += other.x;
 		this.y += other.y;
@@ -19,7 +19,7 @@ Vector.prototype.sub = function(other, y) {
 	y = y || other;
 	if (typeof other === 'number') {
 		this.x -= other;
-		this.y -= other;
+		this.y -= y;
 	} else {
 		this.x -= other.x;
 		this.y -= other.y;
@@ -31,7 +31,7 @@ Vector.prototype.mul = function(other, y) {
 	y = y || other;
 	if (typeof other === 'number') {
 		this.x *= other;
-		this.y *= other;
+		this.y *= y;
 	} else {
 		this.x *= other.x;
 		this.y *= other.y;
@@ -43,7 +43,7 @@ Vector.prototype.div = function(other, y) {
 	y = y || other;
 	if (typeof other === 'number') {
 		this.x /= other;
-		this.y /= other;
+		this.y /= y;
 	} else {
 		this.x /= other.x;
 		this.y /= other.y;
