@@ -1,16 +1,15 @@
 var ship = {
-	vectors: [[0,0], [20,20], [0,40], [60,20]],
+	vectors: [new Vector(0,0), 
+			  new Vector(20,20), 
+			  new Vector(0,40),
+			  new Vector(60,20)],
 
-	x: canvas.width/2,
-	y: canvas.height/2,
+	p: new Vector(constants.width/2, constants.height/2),
+	v: new Vector(),
+	a: new Vector(),
 
 	maxV: 5,
-	vx: 0,
-	vy: 0,
-
 	maxA: 3,
-	ax: 0,
-	ay: 0,
 
 	rotation: 0,
 	maxRv: Math.PI/72.0,
@@ -20,15 +19,16 @@ var ship = {
 	height: 40,
 
 	update: function(dt, mouse) {
-		this.x += this.vx // * dt;
-		this.y += this.vy // * dt;
-		this.vx += this.ax// * dt;
-		this.vy += this.ay// * dt;
+		this.p.add(this.v);
+		this.v.add(this.a);
+
 		this.rotation += this.rv;
+		this.rotation += (this.rotation>Math.PI) ? -2*Math.PI : (this.rotation<-Math.PI) ? 2*Math.PI : 0;
 
-		var distance = Math.sqrt(Math.pow(mouse.y - this.y,2) + Math.pow(mouse.x - this.x,2))
+		var vector = mouse.clone().sub(this.p);
+		var distance = vector.distance();
 
-		var angle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
+		var angle = Math.atan2(vector.y, vector.x);
 		if (angle < 0) angle = 2*Math.PI + angle;
 		var a = angle - this.rotation;
 		a += (a>Math.PI) ? -2*Math.PI : (a<-Math.PI) ? 2*Math.PI : 0
@@ -41,87 +41,68 @@ var ship = {
 			if (this.rv > this.maxRv) this.rv = this.maxRv;
 			if (this.rv < -this.maxRv) this.rv = -this.maxRv;
 
-			this.ax = Math.cos(this.rotation) * speed;
-			this.ay = Math.sin(this.rotation) * speed;
+			this.a.x = Math.cos(this.rotation) * speed;
+			this.a.y = Math.sin(this.rotation) * speed;
 		} else {
-			this.ax = 0;
-			this.ay = 0;
-			this.vx = 0;
-			this.vy = 0;
+			this.a.x = 0;
+			this.a.y = 0;
+			this.v.x = 0;
+			this.v.y = 0;
 		}
 
-		var v = Math.sqrt(Math.pow(this.vx, 2) + Math.pow(this.vy,2));
-		if (v > this.maxV) {
-			this.vx = this.vx / v * this.maxV;
-			this.vy = this.vy / v * this.maxV;
-		}
-
-		//var a = Math.sqrt(Math.pow(this.ax, 2) + Math.pow(this.ay,2));
-		//if (a > this.maxA) {
-		//	this.ax = this.ax / a * this.maxA;
-		//	this.ay = this.ay / a * this.maxA;
-		//}
+		//Max velocity and accelaration
+		this.v.bound(this.maxV);
+		this.a.bound(this.maxA);
 
 		//Friction
-		this.vx *= 0.98;
-		this.vy *= 0.98;
-		this.rv *= 0.98;
-		if (this.vx > -0.01 && this.vx < 0.01) this.vx = 0;
-		if (this.vy > -0.01 && this.vy < 0.01) this.vy = 0;
+		this.v.mul(constants.friction);
+		this.v.clamp(0.01, 0);
+
+		this.rv *= constants.friction;
 		if (this.rv > -0.01 && this.rv < 0.01) this.rv = 0;
 
 		//Boundary checks
-		if (this.x < 0) {
-			this.vx = 0;
-			this.x = 0;
+		if (this.p.x < 0) {
+			this.v.x = 0;
+			this.p.x = 0;
 		}
-		if (this.x > canvas.width) {
-			this.vx = 0;
-			this.x = canvas.width;
+		if (this.p.x > constants.width) {
+			this.v.x = 0;
+			this.p.x = constants.width;
 		}
-		if (this.y < 0) {
-			this.vy = 0;
-			this.y = 0;
+		if (this.p.y < 0) {
+			this.v.y = 0;
+			this.p.y = 0;
 		}
-		if (this.y > canvas.height) {
-			this.vy = 0;
-			this.y = canvas.height;
+		if (this.p.y > constants.height) {
+			this.v.y = 0;
+			this.p.y = constants.height;
 		}
 	},
 
 	draw: function(g) {
 		g.beginPath();
-		var x = this.vectors[0][0]-this.width/2;
-		var y = this.vectors[0][1]-this.height/2;
-		var tmp = x;
-		x = x*Math.cos(this.rotation) - y*Math.sin(this.rotation)
-		y = tmp*Math.sin(this.rotation) + y*Math.cos(this.rotation)
-		x += this.x;
-		y += this.y;
 
-		g.moveTo(x,y);
-		for (let vector of this.vectors.slice(1,this.vectors.length)) {
-			x = vector[0]-this.width/2;
-			y = vector[1]-this.height/2;
+		var vector = this.vectors[0].clone();
+		vector.sub(this.width/2, this.height/2);
+		vector.rotate(this.rotation);
+		vector.add(this.p);
+		g.moveTo(vector.x,vector.y);
 
-			var tmp = x;
-			x = x*Math.cos(this.rotation) - y*Math.sin(this.rotation)
-			y = tmp*Math.sin(this.rotation) + y*Math.cos(this.rotation)
-			x += this.x;
-			y += this.y;
-
-			g.lineTo(x,y)
+		for (ttt of this.vectors.slice(1,this.vectors.length)) {
+			vector = ttt.clone();
+			vector.sub(this.width/2, this.height/2);
+			vector.rotate(this.rotation);
+			vector.add(this.p);
+			g.lineTo(vector.x,vector.y)
 		}
 
-		x = this.vectors[0][0]-this.width/2;
-		y = this.vectors[0][1]-this.height/2;
-		var tmp = x;
-		x = x*Math.cos(this.rotation) - y*Math.sin(this.rotation)
-		y = tmp*Math.sin(this.rotation) + y*Math.cos(this.rotation)
-		x += this.x;
-		y += this.y;
+		vector = this.vectors[0].clone();
+		vector.sub(this.width/2, this.height/2);
+		vector.rotate(this.rotation);
+		vector.add(this.p);
+		g.lineTo(vector.x,vector.y);
 
-		g.lineTo(x,y);
 		g.stroke();
 	}
 }
